@@ -67,6 +67,7 @@ from sklearn.cross_validation import KFold
 looUK = cross_validation.LeaveOneOut(pd.X_UK.shape[0])
 looJP = cross_validation.LeaveOneOut(pd.X_JP.shape[0])
 looAll = cross_validation.LeaveOneOut(pd.X_JP.shape[0]+pd.X_UK.shape[0])
+kf = cross_validation.KFold(n=(pd.X_JP.shape[0]+pd.X_UK.shape[0]-1))
 
 #X_UK = preprocessing.scale(pd.X_UK)
 #X_JP = preprocessing.scale(pd.X_JP)
@@ -174,6 +175,8 @@ sc = []
 se = []
 sp = []
 clf = ensemble.RandomForestClassifier(n_estimators=500, class_weight="auto" )
+clf = svm.SVC(kernel='linear')
+t_range = np.arange(0.01,1,0.01)
 for train, test in looAll:
     
     X_train, X_test = XAll[train,], XAll[test,]
@@ -197,10 +200,27 @@ for train, test in looAll:
     X_test = scaler.transform(X_test)
     
     #T-test 
-    tt_ind = stats.ttest_ind(XAll[Y_train==1,], XAll[Y_train==0,])[1]<0.05   
+    sc_K = []
+    for t in t_range:
+        
+        for train_index, test_index in kf:
+
+            X_trainK, X_testK = X_train[train_index], X_train[test_index]
+            Y_trainK, Y_testK = Y_train[train_index], Y_train[test_index]
+    
+            tt_ind = stats.ttest_ind(X_trainK[Y_trainK==1,], X_trainK[Y_trainK==0,])[1]<t
+            
+            clf.fit(X_trainK[::,tt_ind],Y_trainK)            
+            sc_tmpK = clf.score(X_testK[::,tt_ind],Y_testK)
+        sc_K.append(sc_tmpK.mean())
+    
+    t_max = t_range[np.argmax(np.asarray(sc_K))]
+    print t_max              
       
-    nfeat = sum(tt_ind)
-    clf = ensemble.RandomForestClassifier(n_estimators=500, class_weight="auto" )
+#    nfeat = sum(tt_ind)
+#    clf = ensemble.RandomForestClassifier(n_estimators=500, class_weight="auto",max_features=nfeat  )
+      
+    tt_ind = stats.ttest_ind(X_train[Y_train==1,], X_train[Y_train==0,])[1]<t_max      
       
     #Fit model  
     clf.fit(X_train[::,tt_ind],Y_train)
