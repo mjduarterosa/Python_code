@@ -19,13 +19,13 @@ def import_mat_data( dname):
     nf=len(all_files)
 
     mat=scipy.io.loadmat(all_files[0])
-    data_tmp=mat[mat.keys()[1]]
+    data_tmp=mat[mat.keys()[2]]
     data=np.zeros((nf,data_tmp.shape[0],data_tmp.shape[1]))
 
     i=0
     for name in all_files:    
         mat=scipy.io.loadmat(name)
-        data[i]=mat[mat.keys()[1]]
+        data[i]=mat[mat.keys()[2]]
         i=i+1
         
     return data
